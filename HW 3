@@ -1,0 +1,59 @@
+# Load necessary libraries
+library(tidyverse)
+library(boot)
+
+# Load datasets
+gas_prices <- read.csv("GasPrices.csv")
+sclass <- read.csv("sclass.csv")
+nbc_pilot <- read.csv("nbc_pilotsurvey.csv")
+ebay <- read.csv("ebay.csv")
+
+# Problem 1: Gas Prices Theories
+# Theory A: Effect of competition on gas prices
+gas_competition <- gas_prices %>%
+  group_by(Competitors) %>%
+  summarise(mean_price = mean(Price, na.rm = TRUE),
+            sd_price = sd(Price, na.rm = TRUE),
+            n = n())
+t.test(Price ~ Competitors, data = gas_prices)
+
+# Theory B: Effect of income on gas prices
+summary(lm(Price ~ Income, data = gas_prices))
+
+# Theory C: Effect of stoplights on gas prices
+t.test(Price ~ Stoplight, data = gas_prices)
+
+# Theory D: Effect of highway access on gas prices
+t.test(Price ~ Highway, data = gas_prices)
+
+# Theory E: Shell brand premium
+t.test(Price ~ (Brand == "Shell"), data = gas_prices)
+
+# Problem 2: Mercedes S-Class Analysis
+# Part A: Bootstrap confidence interval for mileage of 2011 S-Class 63 AMG
+sclass_2011 <- filter(sclass, year == 2011, trim == "63 AMG")
+boot_mileage <- boot(sclass_2011$mileage, function(data, i) mean(data[i]), R = 10000)
+boot.ci(boot_mileage, type = "perc")
+
+# Part B: Proportion of 2014 S-Class 550s Painted Black
+sclass_2014 <- filter(sclass, year == 2014, trim == "550")
+sclass_2014 <- mutate(sclass_2014, isBlack = (color == "Black"))
+boot_black <- boot(sclass_2014$isBlack, function(data, i) mean(data[i]), R = 10000)
+boot.ci(boot_black, type = "perc")
+
+# Problem 3: NBC Pilot Survey Analysis
+# Part A: Happiness score comparison
+t.test(Q1_Happy ~ Show, data = filter(nbc_pilot, Show %in% c("Living with Ed", "My Name is Earl")))
+
+# Part B: Annoyance score comparison
+t.test(Q1_Annoyed ~ Show, data = filter(nbc_pilot, Show %in% c("The Biggest Loser", "The Apprentice: Los Angeles")))
+
+# Part C: Confusion proportion for "Dancing with the Stars"
+dancing_confused <- filter(nbc_pilot, Show == "Dancing with the Stars")
+prop.test(sum(dancing_confused$Q2_Confusing >= 4), nrow(dancing_confused))
+
+# Problem 4: eBay Advertising Experiment
+# Compute revenue ratio
+ebay <- ebay %>% mutate(rev_ratio = rev_after / rev_before)
+# Compare revenue ratio between treatment and control
+t.test(rev_ratio ~ adwords_pause, data = ebay)
