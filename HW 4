@@ -1,0 +1,140 @@
+### Problem 1: Iron Bank - Monte Carlo Simulation
+
+set.seed(123)  # Ensure reproducibility
+n_simulations <- 1e5  # 100,000 simulations
+n_trades <- 2021  # Total trades
+flag_rate <- 0.024  # Expected flagging rate
+
+# Simulate the number of flagged trades under the null hypothesis
+sim_flags <- rbinom(n_simulations, n_trades, flag_rate)
+
+# Compute the p-value: probability of getting 70 or more flagged trades
+p_value <- mean(sim_flags >= 70)
+
+# Plot the simulation results
+hist(sim_flags, breaks = 50, probability = TRUE,
+     main = "Flagged Trades Distribution",
+     xlab = "Number of Flagged Trades", col = "lightblue", border = "black")
+abline(v = 70, col = "red", lwd = 2, lty = 2)  # Mark observed value
+
+# Print the p-value and conclusion
+cat("P-value:", p_value, ifelse(p_value < 0.05, "Reject H0: Unusual pattern detected", 
+                                           "Fail to Reject H0: No significant deviation"), "\n")
+
+
+
+### Problem 2: Health Inspections - Monte Carlo Simulation
+
+set.seed(123)
+n_simulations <- 1e5  # 100,000 simulations
+n_inspections <- 50  # Inspections for Gourmet Bites
+violation_rate <- 0.03  # Expected citywide violation rate
+
+# Simulate the number of violations under the null hypothesis
+sim_violations <- rbinom(n_simulations, n_inspections, violation_rate)
+
+# Compute p-value: probability of 8 or more violations
+p_value <- mean(sim_violations >= 8)
+
+# Plot the distribution of violations
+hist(sim_violations, breaks = 30, probability = TRUE,
+     main = "Health Violations Distribution",
+     xlab = "Number of Violations", col = "lightblue", border = "black")
+abline(v = 8, col = "red", lwd = 2, lty = 2)  # Mark observed value
+
+# Print the p-value and conclusion
+cat("P-value:", p_value, ifelse(p_value < 0.05, "Reject H0: Gourmet Bites has significantly higher violations",
+                                           "Fail to Reject H0: No significant deviation"), "\n")
+
+
+
+### Problem 3: Jury Selection - Chi-Squared Test
+
+# Observed jury counts from selected trials
+obs <- c(85, 56, 59, 27, 13)
+
+# Expected proportions based on county population
+exp_prop <- c(0.30, 0.25, 0.20, 0.15, 0.10)
+expected_counts <- sum(obs) * exp_prop  # Compute expected counts
+
+# Perform chi-squared goodness-of-fit test
+chi_test <- chisq.test(obs, p = exp_prop)
+
+# Print test results
+print(chi_test)
+
+# Conclusion based on p-value
+cat(ifelse(chi_test$p.value < 0.05, "Reject H0: Potential Bias Detected",
+                                     "Fail to Reject H0: No Significant Bias in Jury Selection"), "\n")
+
+
+### Problem 4: LLM Watermarking
+#### Part A: Compute Reference Chi-Squared Distribution
+
+library(stringr)  # Load string processing package
+
+# Load Brown Corpus sentences
+brown_sentences <- readLines("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 4/brown_sentences.txt")
+
+# Load English letter frequency data
+letter_freq <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 4/letter_frequencies.csv", row.names = 1)$Frequency
+
+# Function to compute chi-squared statistic for a sentence
+compute_chi_sq <- function(sent) {
+  sent <- str_to_upper(str_replace_all(sent, "[^A-Z]", ""))  # Remove non-letter characters
+  counts <- table(strsplit(sent, "")[[1]])  # Count occurrences of each letter
+  
+  # Normalize observed counts
+  observed <- rep(0, 26)
+  names(observed) <- LETTERS
+  observed[names(counts)] <- counts
+  
+  expected <- sum(observed) * letter_freq  # Compute expected frequencies
+  
+  # Compute chi-squared statistic
+  sum((observed - expected)^2 / expected)
+}
+
+# Compute chi-squared statistics for all sentences in Brown Corpus
+chi_sq_dist <- sapply(brown_sentences, compute_chi_sq)
+
+# Save reference distribution for use in Part B
+saveRDS(chi_sq_dist, "chi_sq_distribution.rds")
+
+
+
+#### Part B: Checking for a Watermarked Sentence
+
+# Given test sentences
+test_sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+# Compute chi-squared statistics for test sentences
+chi_sq_test <- sapply(test_sentences, compute_chi_sq)
+
+# Load reference chi-squared distribution
+chi_sq_dist <- readRDS("chi_sq_distribution.rds")
+
+# Compute p-values by comparing with reference distribution
+p_values <- sapply(chi_sq_test, function(x) mean(chi_sq_dist >= x))
+
+# Display results in a table
+result_df <- data.frame(Sentence = seq_along(test_sentences), 
+                        Chi_Sq = round(chi_sq_test, 3), 
+                        P_Value = round(p_values, 3))
+print(result_df)
+
+# Identify sentence with the lowest p-value (most anomalous)
+most_anomalous <- which.min(p_values)
+cat("The most likely watermarked sentence is Sentence", most_anomalous, 
+    "with p-value:", round(p_values[most_anomalous], 3), "\n")
