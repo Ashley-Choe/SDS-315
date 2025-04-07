@@ -1,22 +1,22 @@
-### SDS 315 - Homework 7
+# SDS 315 - Homework 7
 # Load necessary libraries
 library(tidyverse)
 library(MatchIt)
 
-# Problem 1: Armfolding Analysis
+### Problem 1: Armfolding Analysis
 armfold <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 7/armfold.csv")
 
-# Part A
+## Part A
 table(armfold$Sex)
 prop.table(table(armfold$Sex, armfold$LonR_fold), 1)
 
-# Part B
+## Part B
 p_male <- mean(armfold$LonR_fold[armfold$Sex == "Male"])
 p_female <- mean(armfold$LonR_fold[armfold$Sex == "Female"])
 obs_diff <- p_male - p_female
 obs_diff
 
-# Part C - Hand Calculation
+## Part C - Hand Calculation
 n_male <- sum(armfold$Sex == "Male")
 n_female <- sum(armfold$Sex == "Female")
 se <- sqrt((p_male * (1 - p_male)) / n_male + (p_female * (1 - p_female)) / n_female)
@@ -28,10 +28,10 @@ prop.test(x = c(sum(armfold$LonR_fold[armfold$Sex == "Male"]),
                 sum(armfold$LonR_fold[armfold$Sex == "Female"])),
           n = c(n_male, n_female), correct = FALSE)
 
-# Problem 2: GOTV Campaign
+### Problem 2: GOTV Campaign
 turnout <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 7/turnout.csv")
 
-# Part A
+## Part A
 p1 <- mean(turnout$voted1998[turnout$GOTV_call == 1])
 p2 <- mean(turnout$voted1998[turnout$GOTV_call == 0])
 diff <- p1 - p2
@@ -42,17 +42,17 @@ ci <- c(diff - 1.96*se, diff + 1.96*se)
 diff
 ci
 
-# Part B - Explore confounding variables
+## Part B - Explore confounding variables
 summary(turnout[turnout$GOTV_call == 1, c("voted1996", "AGE", "MAJORPTY")])
 summary(turnout[turnout$GOTV_call == 0, c("voted1996", "AGE", "MAJORPTY")])
 
-# Optional plots (in RStudio/console):
-# ggplot(turnout, aes(x = factor(voted1996), fill = factor(GOTV_call))) +
-#   geom_bar(position = "fill") + ylab("Proportion") + xlab("Voted in 1996")
-# ggplot(turnout, aes(x = factor(GOTV_call), y = AGE)) + geom_boxplot()
-# ggplot(turnout, aes(x = factor(GOTV_call), fill = factor(MAJORPTY))) + geom_bar(position = "fill")
+# plots:
+ggplot(turnout, aes(x = factor(voted1996), fill = factor(GOTV_call))) +
+geom_bar(position = "fill") + ylab("Proportion") + xlab("Voted in 1996")
+ggplot(turnout, aes(x = factor(GOTV_call), y = AGE)) + geom_boxplot()
+ggplot(turnout, aes(x = factor(GOTV_call), fill = factor(MAJORPTY))) + geom_bar(position = "fill")
 
-# Part C - Matching
+## Part C - Matching
 turnout$voted1996 <- as.factor(turnout$voted1996)
 turnout$MAJORPTY <- as.factor(turnout$MAJORPTY)
 m.out <- matchit(GOTV_call ~ voted1996 + AGE + MAJORPTY, data = turnout, method = "nearest", ratio = 5)
