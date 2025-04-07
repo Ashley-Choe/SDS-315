@@ -4,7 +4,7 @@ library(tidyverse)
 library(MatchIt)
 
 # Problem 1: Armfolding Analysis
-armfold <- read.csv("armfold.csv")
+armfold <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 7/armfold.csv")
 
 # Part A
 table(armfold$Sex)
@@ -29,7 +29,7 @@ prop.test(x = c(sum(armfold$LonR_fold[armfold$Sex == "Male"]),
           n = c(n_male, n_female), correct = FALSE)
 
 # Problem 2: GOTV Campaign
-turnout <- read.csv("turnout.csv")
+turnout <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 7/turnout.csv")
 
 # Part A
 p1 <- mean(turnout$voted1998[turnout$GOTV_call == 1])
