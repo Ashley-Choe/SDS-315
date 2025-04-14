@@ -1,0 +1,152 @@
+### Problem 1: Regression Warm-Up
+
+## Load  data
+creatinine <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/creatinine.csv")
+
+# Fit a simple linear regression model: creatinine clearance ~ age
+model <- lm(creatclear ~ age, data = creatinine)
+
+# View model summary
+summary(model)
+
+## Part A: Predict clearance for a 55-year-old
+predict(model, newdata = data.frame(age = 55))
+
+## Part B: How clearance changes with age (slope of the model)
+coef(model)["age"]
+
+## Part C:
+# Predict for age 40 and 60
+pred_40 <- predict(model, newdata = data.frame(age = 40))
+pred_60 <- predict(model, newdata = data.frame(age = 60))
+
+# Compare to actual values
+actual_40 <- 135
+actual_60 <- 112
+
+# Residuals (actual - predicted)
+residual_40 <- actual_40 - pred_40
+residual_60 <- actual_60 - pred_60
+
+# Print comparison
+residual_40
+residual_60
+
+# Who is healthier for their age?
+if (residual_40 > residual_60) {
+  print("The 40-year-old is healthier for their age.")
+} else {
+  print("The 60-year-old is healthier for their age.")
+}
+
+
+
+
+### Problem 2: Modeling Disease Growth
+
+## Load libraries
+library(tidyverse)
+library(boot)
+
+## Load the data
+covid <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/covid.csv")
+
+# Create log(deaths)
+covid$log_deaths <- log(covid$deaths)
+
+# Separate by country
+italy <- covid %>% filter(country == "Italy")
+spain <- covid %>% filter(country == "Spain")
+
+# Fit linear models to log(deaths) ~ days_since_first_death
+model_italy <- lm(log_deaths ~ days_since_first_death, data = italy)
+model_spain <- lm(log_deaths ~ days_since_first_death, data = spain)
+
+# Extract growth rates
+growth_italy <- coef(model_italy)[2]
+growth_spain <- coef(model_spain)[2]
+
+# Doubling time function
+doubling_time <- function(rate) log(2) / rate
+
+dt_italy <- doubling_time(growth_italy)
+dt_spain <- doubling_time(growth_spain)
+
+# Bootstrap function
+boot_growth <- function(data, i) {
+  d <- data[i, ]
+  model <- lm(log_deaths ~ days_since_first_death, data = d)
+  return(coef(model)[2])
+}
+
+# Bootstrap 95% CI
+set.seed(123)  # for reproducibility
+boot_italy <- boot(italy, boot_growth, R = 1000)
+boot_spain <- boot(spain, boot_growth, R = 1000)
+
+ci_growth_italy <- boot.ci(boot_italy, type = "perc")$percent[4:5]
+ci_growth_spain <- boot.ci(boot_spain, type = "perc")$percent[4:5]
+
+ci_dt_italy <- rev(log(2) / ci_growth_italy)  # lower rate = higher doubling time
+ci_dt_spain <- rev(log(2) / ci_growth_spain)
+
+# Results
+growth_italy
+dt_italy
+ci_growth_italy
+ci_dt_italy
+
+growth_spain
+dt_spain
+ci_growth_spain
+ci_dt_spain
+
+# Plot daily deaths
+ggplot(covid, aes(x = days_since_first_death, y = deaths, color = country)) +
+  geom_line() +
+  labs(title = "Daily COVID-19 Deaths",
+       x = "Days Since First Death",
+       y = "Daily Deaths") +
+  theme_minimal()
+
+
+
+
+### Problem 3: Price Elasticity of Demand
+
+## Load libraries
+library(tidyverse)
+library(boot)
+
+## Load the data
+milk <- read.csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/milk.csv")
+
+# Log-transform price and sales
+milk$log_price <- log(milk$price)
+milk$log_sales <- log(milk$sales)
+
+# Fit linear model: log(sales) ~ log(price)
+model <- lm(log_sales ~ log_price, data = milk)
+
+# Elasticity estimate (beta)
+beta_hat <- coef(model)[2]
+
+# Bootstrap function for elasticity
+boot_beta <- function(data, i) {
+  d <- data[i, ]
+  fit <- lm(log_sales ~ log_price, data = d)
+  return(coef(fit)[2])
+}
+
+# Run bootstrap
+set.seed(123)
+boot_result <- boot(milk, boot_beta, R = 1000)
+
+# 95% CI
+ci_beta <- boot.ci(boot_result, type = "perc")$percent[4:5]
+
+# Results
+beta_hat
+ci_beta
+
+
