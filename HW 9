@@ -1,0 +1,147 @@
+###Problem 1
+
+library(tidyverse)
+
+## Load the data
+solder <- read_csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 9/solder.csv")
+
+##Part A
+# Plot 1: Opening vs Skips
+ggplot(solder, aes(x = Opening, y = skips)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Skips by Opening Size",
+       y = "Number of Solder Skips",
+       x = "Solder Gun Opening Size") +
+  theme_minimal()
+
+# Plot 2: Solder vs Skips
+ggplot(solder, aes(x = Solder, y = skips)) +
+  geom_boxplot(fill = "lightgreen") +
+  labs(title = "Skips by Solder Thickness",
+       y = "Number of Solder Skips",
+       x = "Solder Thickness Type") +
+  theme_minimal()
+
+
+##Part B
+install.packages("moderndive")
+install.packages("ggplot2")
+library(moderndive)
+
+# Set the reference levels (optional, but helps with interpretation)
+solder <- solder %>%
+  mutate(
+    Opening = factor(Opening, levels = c("S", "M", "L")),  # S = baseline
+    Solder = factor(Solder, levels = c("Thick", "Thin"))   # Thick = baseline
+  )
+
+# Fit the regression model with interaction
+model <- lm(skips ~ Opening * Solder, data = solder)
+
+# View regression table with estimates and 95% CI
+get_regression_table(model)
+
+
+#################################################################
+
+### Problem 2
+library(tidyverse)
+library(scales)  # for dollar_format()
+
+## Load the data
+grocery <- read_csv("/Users/ashley/Documents/UT Austin/25-1 Spring /SDS 315/HW 9/groceries.csv")
+
+##Part A
+# Compute average price per store
+avg_price_by_store <- grocery %>%
+  group_by(Store) %>%
+  summarize(avg_price = mean(Price, na.rm = TRUE)) %>%
+  arrange(desc(avg_price))
+
+# Plot
+ggplot(avg_price_by_store, aes(x = reorder(Store, avg_price), y = avg_price)) +
+  geom_col(fill = "skyblue") +
+  coord_flip() +
+  labs(title = "Average Product Price by Store",
+       x = "Store",
+       y = "Average Price (USD)") +
+  scale_y_continuous(labels = dollar_format())
+
+
+##Part B
+# Count how many stores each product appears in
+product_counts <- grocery %>%
+  group_by(Product) %>%
+  summarize(num_stores = n()) %>%
+  arrange(desc(num_stores))
+
+# Plot
+ggplot(product_counts, aes(x = reorder(Product, num_stores), y = num_stores)) +
+  geom_col(fill = "lightcoral") +
+  coord_flip() +
+  labs(title = "Number of Stores Selling Each Product",
+       x = "Product",
+       y = "Number of Stores")
+
+
+##Part C
+# Make sure 'Type' is a factor and 'Grocery' is the baseline
+grocery <- grocery %>%
+  mutate(Type = factor(Type, levels = c("Grocery", "Convenience", "High-end", "Natural", "Small format")))
+
+# Fit the model: Price ~ Product + Type
+model_c <- lm(Price ~ Product + Type, data = grocery)
+
+# Show regression table
+library(moderndive)
+get_regression_table(model_c)
+regression_2_C=get_regression_table(model_c)
+
+View(regression_2_C)
+
+
+##Part D
+# Fit a model that includes both product and store
+model_d <- lm(Price ~ Product + Store, data = grocery)
+
+# Get the regression table
+reg_2_D=get_regression_table(model_d)
+View(reg_2_D)
+
+
+##Part E
+model_e <- lm(Price ~ Product + Store, data = grocery)
+
+# Get the regression table
+reg_table <- get_regression_table(model_e)
+
+# Filter for Central Market and H-E-B
+reg_table %>%
+  filter(term %in% c("Store: Central Market", "Store: H-E-B"))
+
+
+##Part F
+# Create Income10K variable
+grocery <- grocery %>%
+  mutate(Income10K = Income / 10000)
+
+#Fit model with product and Income10K
+model_f <- lm(Price ~ Product + Income10K, data = grocery)
+
+#Get the regression table
+reg_2_F=get_regression_table(model_f)
+View(reg_2_F)
+
+#Standardize variables
+grocery_std <- grocery %>%
+  mutate(
+    Price_std = scale(Price),
+    Income10K_std = scale(Income10K)
+  )
+
+#Fit model with standardized variables
+model_f_std <- lm(Price_std ~ Product + Income10K_std, data = grocery_std)
+
+#Get regression table
+get_regression_table(model_f_std) %>%
+  filter(term == "Income10K_std")
